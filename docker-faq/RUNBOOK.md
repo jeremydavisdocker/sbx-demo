@@ -32,6 +32,41 @@ sbx run --clone --name faq-style    --kit ../docker-faq-demo-kit/ --repo <org>/d
 
 > **Note:** The exact `sbx run` syntax for kit-launched sandboxes is Early Access and subject to change. Verify the invocation against current `sbx run --help` output before rehearsal.
 
+## 3a. Alternate path: one sandbox, three parallel agents
+
+Instead of three VMs, a single `sbx run --clone` sandbox can solve all three issues concurrently. This trades the "three isolated environments" visual for a simpler rehearsal (one set of secrets/network policy to verify instead of three) — decide which story you want to tell before swapping in.
+
+The three issues touch disjoint paths (Issue 1: root `compose.yaml`; Issue 2: `db/import.sql`; Issue 3: `frontend/public/*`), so they can run truly concurrently via git worktrees without merge conflicts:
+
+```bash
+sbx run --clone --name faq-all --kit ../docker-faq-demo-kit/ --repo <org>/docker-faq
+```
+
+Inside that sandbox, give Claude Code this exact prompt. It reads the three issues, fans out one subagent per issue with `isolation: "worktree"` (Claude Code creates a dedicated git worktree and branch per agent automatically — no manual `git worktree` commands needed), and has each agent commit, push, and open its own PR:
+
+```
+Read docker-faq/ISSUES.md — it contains three issues separated by "---" rules.
+
+In a single message, launch three Agent tool calls in parallel, each with
+subagent_type: "general-purpose" and isolation: "worktree" — one per issue.
+
+Give each agent, as its full prompt, the verbatim text of its one issue, plus
+this appended instruction:
+
+  "Work only within your worktree and only within the file scope stated in
+  this issue. When your changes are complete and correct, commit them, push
+  your branch, and run `gh pr create --fill` to open a PR against
+  <org>/docker-faq, with 'Closes #<issue-number>' in the PR body."
+
+Look up each issue's number from `gh issue list --repo <org>/docker-faq`
+before building the prompts, so each agent references the right issue.
+
+Wait for all three agents to finish, then report the three PR URLs and which
+issue each one closes.
+```
+
+Substitute `<org>/docker-faq` for the real repo before pasting. Skip step 3 above if using this path; step 5 (fourth verify sandbox) is unchanged either way.
+
 ## 4. Rehearsal checklist
 
 1. **Brand guide wiring** — confirm the agent reads the brand guide shipped in the kit (it lands at `/home/agent/` inside the sandbox). With kits, agent context may land under a `kits-agent-context/` index path; verify the styled output uses the correct palette before the demo.
