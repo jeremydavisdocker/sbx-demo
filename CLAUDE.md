@@ -21,10 +21,21 @@ browser → frontend :3000 → backend :8000 → postgres :5432
 
 ## Hard constraints (the demo breaks if violated)
 
+### Before (initial state — issues #1–#3 unsolved)
+
 1. **No `docker-compose.yml` / `compose.yaml` anywhere in `docker-faq/`** — issue #1 creates it
 2. **No seed data** — `db/` contains schema only; `SELECT count(*) FROM faqs` must return 0
 3. **No brand assets in the repo** — no hex codes, no `docker-brand.md`, no Docker palette references in `docker-faq/`; the brand guide lives only in `docker-faq-demo-kit/files/home/docker-brand.md`
 4. **Frontend must look intentionally plain** — black/white/gray, system font, ≤30 lines of CSS, 1996-era
+
+### After (once issues #1–#3 are solved)
+
+1. **`docker-faq/compose.yaml` exists** — `db`, `backend`, `frontend` services, health-checked and dependency-ordered per issue #1; `docker compose up` from a clean checkout serves the site on :3000
+2. **Seed data loaded** — `docker-faq/db/import.sql` inserts ~10 FAQ rows about Docker Sandboxes (`basics`/`security`/`networking`); `SELECT count(*) FROM faqs` returns 10
+3. **Brand styling applied** — `docker-faq/frontend/public/styles.css` follows the palette and typography in `docker-faq-demo-kit/files/home/docker-brand.md`
+4. **Frontend matches Docker's brand** — styled header, FAQ cards, and empty state; no CSS framework, build step, or new dependency added
+
+To reset back to the Before state for another live run: revert the compose, seed-data, and frontend-styling changes to their pre-issue versions (e.g. `git revert` the issue merge commits on `main`), then recreate GitHub issues #1–#3 via `docker-faq/scripts/create-issues.sh`.
 
 ## Running the services (from README)
 
